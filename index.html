@@ -6,49 +6,78 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#111318">
 <title>PersonalAI</title>
+
 <style>
 *{box-sizing:border-box}
 body{
- margin:0;padding:18px;background:#111318;color:white;
- font-family:-apple-system,BlinkMacSystemFont,sans-serif
+  margin:0;padding:18px;
+  background:#111318;color:white;
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
 }
+h1{margin-top:5px}
+h3{margin-bottom:8px}
 input,textarea,select{
- width:100%;padding:12px;margin:6px 0;
- background:#20242c;color:white;border:1px solid #444;
- border-radius:10px;font-size:15px
+  width:100%;padding:12px;margin:6px 0;
+  background:#20242c;color:white;
+  border:1px solid #444;border-radius:10px;
+  font-size:16px;
 }
 button{
- padding:11px 15px;margin:5px 3px;
- background:#6688ff;color:white;border:0;
- border-radius:10px;font-size:14px
+  padding:11px 14px;margin:5px 3px;
+  background:#6688ff;color:white;
+  border:0;border-radius:10px;font-size:14px;
 }
-button:disabled{opacity:.45}
-#out{margin-top:15px;overflow-wrap:anywhere}
+button:disabled{opacity:.5}
+.panel{
+  padding:13px;margin:12px 0;
+  background:#20242c;border:1px solid #343944;
+  border-radius:12px;
+}
+#out{margin-top:12px}
 .msg{
- padding:11px;background:#20242c;
- border-radius:10px;margin:8px 0;
- white-space:pre-wrap;line-height:1.5
+  padding:11px;margin:8px 0;
+  background:#20242c;border-radius:10px;
+  overflow-wrap:anywhere;white-space:pre-wrap;
 }
-.msg.ai{background:#293044}
-small{color:#aaa;line-height:1.6}
-#status{
- padding:12px;margin:10px 0;
- background:#20242c;border-radius:10px;
- color:#b9c8ff;overflow-wrap:anywhere
+.user{border-left:3px solid #6688ff}
+.ai{border-left:3px solid #55c99a}
+small{color:#aaa}
+#status{white-space:pre-wrap;overflow-wrap:anywhere}
+#error{
+  color:#ff8888;white-space:pre-wrap;
+  overflow-wrap:anywhere;font-size:13px;
+}
+#log{
+  max-height:220px;overflow:auto;
+  white-space:pre-wrap;overflow-wrap:anywhere;
+  color:#bbb;font-size:12px;
 }
 </style>
 </head>
+
 <body>
 
 <h1>PersonalAI</h1>
-<p>多角色 AI 聊天系统</p>
+<p><small>私人 AI 角色聊天系统 · 诊断版</small></p>
 
-<h3>AI 模型</h3>
-<button id="load">加载离线模型</button>
-<div id="status">模型尚未加载</div>
+<div class="panel">
+  <h3>AI 模型</h3>
+  <div id="status">尚未加载模型</div>
+  <button id="load">加载离线模型</button>
+  <button id="testGPU">单独检查 WebGPU</button>
+  <p><small>首次加载需要下载模型资源，请保持网络连接。</small></p>
+</div>
+
+<div class="panel">
+  <h3>诊断信息</h3>
+  <div id="error"></div>
+  <div id="log">等待检测……</div>
+  <button id="copyLog">复制诊断信息</button>
+</div>
 
 <h3>选择角色</h3>
 <select id="roles"></select>
+
 <button id="add">创建角色</button>
 <button id="edit">修改设定</button>
 <button id="del">删除角色</button>
@@ -62,291 +91,407 @@ small{color:#aaa;line-height:1.6}
 <button id="send">发送</button>
 <button id="clear">清空当前聊天</button>
 
-<script>
-const KEY="personalai_roles_v1";
-const MODEL="Llama-3.2-1B-Instruct-q4f16_1-MLC";
+<script type="module">
 
-let data;
-let engine=null;
-let loading=false;
-let busy=false;
+const MODEL_ID = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
+const ENGINE_URL =
+  "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/+esm";
 
-const $=id=>document.getElementById(id);
+const KEY = "personalai_roles_v1";
 
-try{
- data=JSON.parse(localStorage.getItem(KEY));
-}catch(e){}
+const $ = id => document.getElementById(id);
 
-if(!data||!Array.isArray(data.roles)||!data.roles.length){
- data={
-  current:0,
-  roles:[{
-   name:"小猫",
-   prompt:"你是一只黏人、可爱、好奇、调皮的小猫。说话软萌自然，偶尔使用喵～，喜欢聊天，也有自己的想法。不要每句话都说喵。",
-   messages:[]
-  }]
- };
+let engine = null;
+let loading = false;
+let stage = "尚未开始";
+let logs = [];
+
+function log(message){
+  const time = new Date().toLocaleTimeString();
+  logs.push("[" + time + "] " + message);
+  $("log").textContent = logs.join("\n");
+  $("log").scrollTop = $("log").scrollHeight;
 }
 
-data.roles.forEach(r=>{
- if(!Array.isArray(r.messages))r.messages=[];
- r.messages=r.messages.map(m=>{
-  if(typeof m==="string"){
-   return {role:"user",content:m};
-  }
-  return m;
- }).filter(m=>
-  m&&
-  (m.role==="user"||m.role==="assistant")&&
-  typeof m.content==="string"
- );
-});
+function status(message){
+  $("status").textContent = message;
+  log(message);
+}
 
-data.current=Math.max(
- 0,Math.min(data.current||0,data.roles.length-1)
+function errorInfo(e){
+  const name = e?.name || "UnknownError";
+  const message = e?.message || String(e);
+  const stack = e?.stack || "没有提供堆栈信息";
+
+  $("error").textContent =
+    "失败阶段：" + stage +
+    "\n错误名称：" + name +
+    "\n错误信息：" + message +
+    "\n堆栈信息：" + stack;
+
+  log("错误名称：" + name);
+  log("错误信息：" + message);
+  log("堆栈信息：" + stack);
+}
+
+let data;
+
+try{
+  data = JSON.parse(localStorage.getItem(KEY));
+}catch(e){}
+
+if(!data || !Array.isArray(data.roles) || !data.roles.length){
+  data = {
+    current:0,
+    roles:[{
+      name:"小猫",
+      prompt:"你是一只黏人、可爱、好奇、调皮的小猫。性格软萌，喜欢和老师聊天，也会关心老师。说话简短自然，偶尔使用喵～，但不要每句话都说喵。拥有自己的情绪和想法。",
+      messages:[]
+    }]
+  };
+}
+
+data.current = Math.max(
+  0,
+  Math.min(data.current || 0, data.roles.length - 1)
 );
 
 function save(){
- try{
-  localStorage.setItem(KEY,JSON.stringify(data));
- }catch(e){
-  setStatus("保存失败，浏览器存储可能不足。");
- }
+  try{
+    localStorage.setItem(KEY,JSON.stringify(data));
+  }catch(e){
+    log("保存失败：" + (e.message || e));
+  }
 }
 
 function current(){
- return data.roles[data.current];
+  return data.roles[data.current];
 }
 
-function setStatus(text){
- $("status").textContent=text;
+function normalizeMessages(){
+  data.roles.forEach(r=>{
+    if(!Array.isArray(r.messages)) r.messages=[];
+
+    r.messages = r.messages.map(m=>{
+      if(typeof m === "string"){
+        return {role:"user",content:m};
+      }
+      return m;
+    });
+  });
 }
 
-function setBusy(value){
- busy=value;
- $("send").disabled=value;
- $("load").disabled=value||loading;
- $("roles").disabled=value;
- $("add").disabled=value;
- $("edit").disabled=value;
- $("del").disabled=value;
-}
+normalizeMessages();
 
 function render(){
- $("roles").innerHTML="";
+  $("roles").innerHTML="";
 
- data.roles.forEach((r,i)=>{
-  const o=document.createElement("option");
-  o.value=i;
-  o.textContent=r.name;
-  $("roles").appendChild(o);
- });
+  data.roles.forEach((r,i)=>{
+    const option=document.createElement("option");
+    option.value=i;
+    option.textContent=r.name;
+    $("roles").appendChild(option);
+  });
 
- $("roles").value=data.current;
- $("roleName").textContent=current().name;
- $("rolePrompt").textContent="角色设定："+current().prompt;
+  $("roles").value=data.current;
 
- $("out").innerHTML="";
+  $("roleName").textContent=current().name;
+  $("rolePrompt").textContent="角色设定："+current().prompt;
 
- current().messages.forEach(m=>{
-  const p=document.createElement("div");
-  p.className="msg "+(m.role==="assistant"?"ai":"user");
-  p.textContent=(m.role==="assistant"?current().name:"你")+"："+m.content;
-  $("out").appendChild(p);
- });
+  $("out").innerHTML="";
+
+  current().messages.forEach(m=>{
+    const div=document.createElement("div");
+    div.className="msg "+(m.role==="assistant"?"ai":"user");
+
+    const who=document.createElement("strong");
+    who.textContent=m.role==="assistant"?"AI：":"你：";
+
+    const content=document.createElement("div");
+    content.textContent=m.content || "";
+
+    div.appendChild(who);
+    div.appendChild(content);
+    $("out").appendChild(div);
+  });
+
+  $("out").scrollTop=$("out").scrollHeight;
 }
 
 $("roles").onchange=function(){
- data.current=Number(this.value);
- save();
- render();
+  data.current=Number(this.value);
+  save();
+  render();
 };
 
 $("add").onclick=function(){
- const name=prompt("请输入角色名称");
- if(!name||!name.trim())return;
+  const name=prompt("请输入角色名称");
+  if(!name || !name.trim()) return;
 
- const promptText=prompt("请输入角色设定")||
- "一个友善的聊天角色。";
+  const promptText=prompt("请输入角色设定") ||
+    "一个友善的聊天角色。";
 
- data.roles.push({
-  name:name.trim(),
-  prompt:promptText,
-  messages:[]
- });
+  data.roles.push({
+    name:name.trim(),
+    prompt:promptText,
+    messages:[]
+  });
 
- data.current=data.roles.length-1;
- save();
- render();
+  data.current=data.roles.length-1;
+  save();
+  render();
 };
 
 $("edit").onclick=function(){
- const r=current();
- const name=prompt("修改角色名称",r.name);
- if(!name||!name.trim())return;
+  const r=current();
 
- const p=prompt("修改角色设定",r.prompt);
- r.name=name.trim();
- if(p!==null)r.prompt=p;
+  const name=prompt("修改角色名称",r.name);
+  if(!name || !name.trim()) return;
 
- save();
- render();
-};
+  const p=prompt("修改角色设定",r.prompt);
 
-$("del").onclick=function(){
- if(data.roles.length<=1){
-  alert("至少保留一个角色");
-  return;
- }
-
- if(!confirm("确定删除这个角色及其聊天记录？"))return;
-
- data.roles.splice(data.current,1);
- data.current=0;
- save();
- render();
-};
-
-// 加载 WebLLM
-async function loadModel(){
- if(engine)return engine;
- if(loading)return null;
-
- if(!navigator.gpu){
-  setStatus("当前浏览器不支持 WebGPU。");
-  return null;
- }
-
- loading=true;
- $("load").disabled=true;
-
- try{
-  setStatus("正在连接 AI 引擎……");
-
-  const webllm=await import(
-   "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/+esm"
-  );
-
-  setStatus("引擎连接成功，正在准备模型……");
-
-  engine=await webllm.CreateMLCEngine(
-   MODEL,
-   {
-    initProgressCallback:(progress)=>{
-     setStatus(progress.text||"正在加载模型……");
-    }
-   }
-  );
-
-  setStatus("模型加载完成，可以开始聊天。");
-  return engine;
-
- }catch(e){
-  engine=null;
-  console.error(e);
-  setStatus("模型加载失败："+(e.message||String(e)));
-  return null;
-
- }finally{
-  loading=false;
-  $("load").disabled=false;
- }
-}
-
-$("load").onclick=loadModel;
-
-// AI 自动回复
-async function sendMessage(){
- if(busy)return;
-
- const v=$("msg").value.trim();
- if(!v)return;
-
- if(!engine){
-  setStatus("请先加载 AI 模型。");
-  return;
- }
-
- const role=current();
-
- role.messages.push({
-  role:"user",
-  content:v
- });
-
- $("msg").value="";
- save();
- render();
-
- setBusy(true);
- setStatus("AI 正在思考……");
-
- try{
-  const history=role.messages.slice(-12);
-
-  const messages=[
-   {
-    role:"system",
-    content:
-     "请严格按照以下角色设定进行聊天。"+
-     "保持角色性格，不要自称AI。"+
-     "使用简体中文自然交流。"+
-     "角色设定："+role.prompt
-   },
-   ...history.map(m=>({
-    role:m.role,
-    content:m.content
-   }))
-  ];
-
-  const result=await engine.chat.completions.create({
-   messages,
-   temperature:0.8,
-   top_p:0.9,
-   max_tokens:160
-  });
-
-  const answer=result.choices?.[0]?.message?.content;
-
-  if(!answer){
-   throw new Error("模型没有返回有效内容");
-  }
-
-  role.messages.push({
-   role:"assistant",
-   content:answer
-  });
+  r.name=name.trim();
+  if(p!==null) r.prompt=p;
 
   save();
   render();
-  setStatus("回复完成。");
+};
 
- }catch(e){
-  console.error(e);
-  setStatus("生成失败："+(e.message||String(e)));
+$("del").onclick=function(){
+  if(data.roles.length<=1){
+    alert("至少保留一个角色");
+    return;
+  }
 
- }finally{
-  setBusy(false);
- }
+  if(!confirm("确定删除这个角色及其聊天记录？")) return;
+
+  data.roles.splice(data.current,1);
+  data.current=0;
+  save();
+  render();
+};
+
+async function checkGPU(){
+  stage="WebGPU 检查";
+
+  log("开始检查 WebGPU");
+
+  if(!navigator.gpu){
+    throw new Error("当前浏览器没有提供 navigator.gpu");
+  }
+
+  const adapter=await navigator.gpu.requestAdapter();
+
+  if(!adapter){
+    throw new Error("requestAdapter 返回空值");
+  }
+
+  log("WebGPU Adapter 获取成功");
+
+  const info=adapter.info || {};
+
+  log("GPU 信息：" + JSON.stringify({
+    vendor:info.vendor,
+    architecture:info.architecture,
+    device:info.device,
+    description:info.description
+  }));
+
+  const device=await adapter.requestDevice();
+
+  if(!device){
+    throw new Error("WebGPU requestDevice 失败");
+  }
+
+  log("WebGPU Device 创建成功");
+
+  if(device.destroy) device.destroy();
+
+  return true;
+}
+
+$("testGPU").onclick=async function(){
+  $("error").textContent="";
+  $("testGPU").disabled=true;
+
+  try{
+    await checkGPU();
+    status("WebGPU 检查通过");
+  }catch(e){
+    errorInfo(e);
+    status("WebGPU 检查失败");
+  }finally{
+    $("testGPU").disabled=false;
+  }
+};
+
+$("load").onclick=async function(){
+  if(loading) return;
+
+  if(engine){
+    status("模型已经加载完成");
+    return;
+  }
+
+  loading=true;
+  $("load").disabled=true;
+  $("error").textContent="";
+
+  try{
+
+    stage="检查 WebGPU";
+    status("阶段 1/4：检查 WebGPU……");
+    await checkGPU();
+
+    stage="导入 WebLLM";
+    status("阶段 2/4：正在导入 AI 引擎……");
+
+    const webllm=await import(ENGINE_URL);
+
+    log("WebLLM 导入成功");
+    log("CreateMLCEngine 类型：" + typeof webllm.CreateMLCEngine);
+
+    if(typeof webllm.CreateMLCEngine!=="function"){
+      throw new Error("没有找到 CreateMLCEngine 函数");
+    }
+
+    stage="初始化模型";
+    status("阶段 3/4：正在初始化模型……");
+
+    engine=await webllm.CreateMLCEngine(
+      MODEL_ID,
+      {
+        initProgressCallback:(progress)=>{
+          stage="下载或初始化模型";
+
+          const text=progress.text || JSON.stringify(progress);
+
+          $("status").textContent=
+            "阶段 4/4：模型加载中\n"+text;
+
+          log("模型进度：" + text);
+        }
+      }
+    );
+
+    stage="模型加载完成";
+    status("模型加载成功，可以开始聊天了！");
+    log("模型初始化完成");
+
+  }catch(e){
+    engine=null;
+    errorInfo(e);
+    status("模型加载失败，请查看上方诊断信息");
+  }finally{
+    loading=false;
+    $("load").disabled=false;
+  }
+};
+
+async function sendMessage(){
+  const input=$("msg");
+  const text=input.value.trim();
+
+  if(!text) return;
+
+  if(!engine){
+    alert("请先加载 AI 模型");
+    return;
+  }
+
+  const r=current();
+
+  r.messages.push({
+    role:"user",
+    content:text
+  });
+
+  input.value="";
+  save();
+  render();
+
+  $("send").disabled=true;
+
+  try{
+    stage="生成 AI 回复";
+    status("AI 正在思考……");
+
+    const history=[
+      {
+        role:"system",
+        content:r.prompt
+      },
+      ...r.messages.slice(-20).map(m=>({
+        role:m.role,
+        content:m.content
+      }))
+    ];
+
+    const response=await engine.chat.completions.create({
+      messages:history,
+      temperature:0.7,
+      max_tokens:256
+    });
+
+    const answer=
+      response.choices?.[0]?.message?.content ||
+      "暂时没有生成回复。";
+
+    r.messages.push({
+      role:"assistant",
+      content:answer
+    });
+
+    save();
+    render();
+    status("回复完成");
+
+  }catch(e){
+    errorInfo(e);
+    status("生成回复失败");
+  }finally{
+    $("send").disabled=false;
+  }
 }
 
 $("send").onclick=sendMessage;
 
 $("msg").onkeydown=function(e){
- if(e.key==="Enter"){
-  e.preventDefault();
-  sendMessage();
- }
+  if(e.key==="Enter"){
+    sendMessage();
+  }
 };
 
 $("clear").onclick=function(){
- if(!confirm("清空当前角色的聊天记录？"))return;
- current().messages=[];
- save();
- render();
+  if(!confirm("清空当前角色的聊天记录？")) return;
+
+  current().messages=[];
+  save();
+  render();
 };
 
+$("copyLog").onclick=function(){
+  const text=
+    "当前阶段："+stage+"\n"+
+    "浏览器："+navigator.userAgent+"\n"+
+    "模型："+MODEL_ID+"\n"+
+    "诊断日志：\n"+logs.join("\n")+
+    "\n错误信息：\n"+$("error").textContent;
+
+  if(navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(text)
+      .then(()=>alert("诊断信息已复制"))
+      .catch(()=>alert("复制失败，请手动复制诊断信息"));
+  }else{
+    alert("当前浏览器不支持自动复制，请手动复制");
+  }
+};
+
+save();
 render();
+log("PersonalAI 诊断版启动完成");
+log("模型 ID：" + MODEL_ID);
+
 </script>
 </body>
 </html>
