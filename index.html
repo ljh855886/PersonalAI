@@ -1,212 +1,4 @@
-      padding: 15px;
-      border: 1px solid #343944;
-      border-radius: 14px;
-      background: #20242c;
-      color: white;
-      font-size: 16px;
-    }
-    button {
-      border: 0;
-      border-radius: 14px;
-      padding: 0 20px;
-      background: #6688ff;
-      color: white;
-      font-size: 16px;
-    }
-    #messages { white-space: pre-wrap; }
-  </style>
-</head>
-<body>
-  <header><h2>PersonalAI</h2></header>
-  <main>
-    <section class="welcome" id="welcome">
-      <h1>你好，欢迎回来。</h1>
-      <p>你的私人 AI，正在等待与你交流。</p>
-    </section>
-    <div id="messages"></div>
-  </main>
-  <div class="input-area">
-    <input id="message" placeholder="发送消息..." />
-    <button onclick="sendMessage()">发送</button>
-  </div>
-  <script>
-    function sendMessage() {
-      const input = document.getElementById('message');
-      const value = input.value.trim();
-      if (!value) return;
-      document.getElementById('welcome').style.display = 'none';
-      const box = document.getElementById('messages');
-      const item = document.createElement('p');
-      item.textContent = '你：' + value;
-      box.appendChild(item);
-      input.value = '';
-    }
-  </script>
-</body>
-</html>
-EOF
-ls -l index.html
 
-ls -l index.html
-ls -l index.html
-ls -l index.html
-
-
-echo TEST
-echo TEST
-echo TEST
-echo TEST
-
-
-echo TEST
-echo TEST
-[PersonalAI]$ cd PersonalAI
-cd: /private/var/mobile/Containers/Data/Application/6ACE97C6-4C6D-4C2F-BD84-80E5A803C1C9/Documents/PersonalAI/PersonalAI: no such file or directory
-[PersonalAI]$ ls -l
-total 0
--rw-r--r--  1 mobile  mobile  0 Nov 15 10:24 index.html
-[PersonalAI]$ echo TEST > test.txt
-[PersonalAI]$ ls -l test.txt
--rw-r--r--  1 mobile  mobile  5 Nov 15 10:41 test.txt
-[PersonalAI]$ rm index.html
-[PersonalAI]$ cat > index.html
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PersonalAI</title>
-<style>
-body{margin:0;background:#111318;color:white;font-family:-apple-system,sans-serif}
-header{padding:22px;border-bottom:1px solid #292d35}
-main{padding:20px;max-width:700px;margin:auto}
-.welcome{margin-top:65px;text-align:center}
-.welcome p{color:#9ca3af}
-.input-area{position:fixed;bottom:20px;left:15px;right:15px;display:flex;gap:10px}
-input{flex:1;min-width:0;padding:15px;border-radius:14px;background:#20242c;color:white;font-size:16px}
-button{padding:0 20px;border:0;border-radius:14px;background:#6688ff;color:white}
-</style>
-</head>
-<body>
-<header><h2>PersonalAI</h2></header>
-<main>
-<section class="welcome" id="welcome">
-<h1>你好，欢迎回来。</h1>
-<p>你的私人 AI，正在等待与你交流。</p>
-</section>
-<div id="messages"></div>
-</main>
-<div class="input-area">
-<input id="message" placeholder="发送消息...">
-<button onclick="sendMessage()">发送</button>
-</div>
-<script>
-function sendMessage(){
-const input=document.getElementById('message');
-const value=input.value.trim();
-if(!value)return;
-document.getElementById('welcome').style.display='none';
-const item=document.createElement('p');
-item.textContent='你：'+value;
-document.getElementById('messages').appendChild(item);
-input.value='';
-}
-</script>
-</body>
-</html>
-EOF
-[PersonalAI]$ EOF
-EOF: command not found
-[PersonalAI]$ cat index.html
-[PersonalAI]$ cd ~/Documents/PersonalAI
-[PersonalAI]$ echo '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PersonalAI</title></head><body style="background:#111318;color:white;font-family:sans-serif;padding:24px"><h1>PersonalAI</h1><p>你好，欢迎回来。</p><input id="msg" placeholder="发送消息"><button onclick="document.getElementById(\"out\").textContent=document.getElementById(\"msg\").value">发送</button><p id="out"></p></body></html>' > index.html
-[PersonalAI]$ ls -l index.html
--rw-r--r--@ 1 mobile  mobile  483 Nov 15 10:48 index.html
-[PersonalAI]$ cat index.html
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PersonalAI</title></head><body style="background:#111318;color:white;font-family:sans-serif;padding:24px"><h1>PersonalAI</h1><p>你好，欢迎回来。</p><input id="msg" placeholder="发送消息"><button onclick="document.getElementById(\"out\").textContent=document.getElementById(\"msg\").value">发送</button><p id="out"></p></body></html>
-[PersonalAI]$ echo '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111318"><title>PersonalAI</title><style>body{margin:0;padding:24px;background:#111318;color:white;font-family:sans-serif}input{padding:12px;border-radius:10px}button{padding:12px;background:#6688ff;color:white;border:0;border-radius:10px}</style></head><body><h1>PersonalAI</h1><p>你好，欢迎回来。</p><input id="msg" placeholder="发送消息"><button id="send">发送</button><div id="out"></div><script>document.getElementById("send").addEventListener("click",function(){const v=document.getElementById("msg").value.trim();if(!v)return;const p=document.createElement("p");p.textContent="你："+v;document.getElementById("out").appendChild(p);document.getElementById("msg").value=""})</script></body></html>' > index.html
-[PersonalAI]$ ls -l index.html
--rw-r--r--@ 1 mobile  mobile  882 Nov 15 10:50 index.html
-[PersonalAI]$ open index.html
-[PersonalAI]$ cd ~/Documents/PersonalAI
-[PersonalAI]$ cd ~/Documents/PersonalAI
-
-cat > index.html <<'EOF'
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#111318">
-<title>PersonalAI</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;background:#111318;color:white;font-family:-apple-system,sans-serif}
-header{padding:20px;border-bottom:1px solid #292d35;display:flex;justify-content:space-between}
-main{padding:18px;max-width:700px;margin:auto;padding-bottom:110px}
-#welcome{text-align:center;margin-top:55px}
-#welcome p{color:#9ca3af}
-#messages p{padding:12px;background:#20242c;border-radius:12px;margin:10px 0;overflow-wrap:anywhere}
-.input-area{position:fixed;bottom:15px;left:12px;right:12px;display:flex;gap:8px;max-width:676px;margin:auto}
-input{flex:1;min-width:0;padding:14px;border:1px solid #343944;border-radius:12px;background:#20242c;color:white;font-size:16px}
-button{border:0;border-radius:12px;padding:0 18px;background:#6688ff;color:white;font-size:15px}
-</style>
-</head>
-<body>
-<header>
-<strong>PersonalAI</strong>
-<span>离线角色聊天</span>
-</header>
-<main>
-<section id="welcome">
-<h2>你好，欢迎回来。</h2>
-<p>你的私人 AI，正在等待与你交流。</p>
-</section>
-<div id="messages"></div>
-</main>
-<div class="input-area">
-<input id="message" placeholder="发送消息..." autocomplete="off">
-<button id="send">发送</button>
-</div>
-<script>
-const STORAGE_KEY="personalai_messages_v1";
-let messages=[];
-try{messages=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");if(!Array.isArray(messages))messages=[];}catch(e){messages=[];}
-const box=document.getElementById("messages");
-const welcome=document.getElementById("welcome");
-function render(){
-box.innerHTML="";
-messages.forEach(m=>{
-const p=document.createElement("p");
-p.textContent="你："+m;
-box.appendChild(p);
-});
-welcome.style.display=messages.length?"none":"block";
-}
-function send(){
-const input=document.getElementById("message");
-const value=input.value.trim();
-if(!value)return;
-messages.push(value);
-try{localStorage.setItem(STORAGE_KEY,JSON.stringify(messages));}
-catch(e){alert("本地存储空间不足，聊天记录未能保存。");}
-input.value="";
-render();
-}
-document.getElementById("send").addEventListener("click",send);
-document.getElementById("message").addEventListener("keydown",e=>{
-if(e.key==="Enter")send();
-});
-render();
-</script>
-</body>
-</html>
-EOF
-
-ls -l index.html
-[PersonalAI]$ cd ~/Documents/PersonalAI
-
-cat > index.html <<'EOF'
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -227,132 +19,55 @@ p{overflow-wrap:anywhere}
 <p>你好，欢迎回来。</p>
 <div id="out"></div>
 <input id="msg" placeholder="发送消息">
-<button id="send">发送</button>
-<button id="clear">清空记录</button>
+<button id="send" type="button">发送</button>
+<button id="clear" type="button">清空记录</button>
 <script>
 const key="personalai_messages_v1";
 let messages=[];
-try{
-messages=JSON.parse(localStorage.getItem(key)||"[]");
-if(!Array.isArray(messages))messages=[];
-}catch(e){messages=[];}
 const out=document.getElementById("out");
+const input=document.getElementById("msg");
+
 function render(){
 out.innerHTML="";
 messages.forEach(v=>{
-const p=document.createElement("p");
+let p=document.createElement("p");
 p.textContent="你："+v;
 out.appendChild(p);
 });
 }
+
 function send(){
-const input=document.getElementById("msg");
-const v=input.value.trim();
+let v=input.value.trim();
 if(!v)return;
 messages.push(v);
 try{
 localStorage.setItem(key,JSON.stringify(messages));
 }catch(e){
-alert("保存失败，请检查浏览器存储空间。");
+alert("保存失败："+e.message);
 }
 input.value="";
 render();
 }
-document.getElementById("send").addEventListener("click",send);
-document.getElementById("msg").addEventListener("keydown",e=>{
+
+try{
+messages=JSON.parse(localStorage.getItem(key)||"[]");
+if(!Array.isArray(messages))messages=[];
+}catch(e){messages=[];}
+
+document.getElementById("send").onclick=send;
+input.onkeydown=function(e){
 if(e.key==="Enter")send();
-});
-document.getElementById("clear").addEventListener("click",()=>{
-if(!confirm("确定清空所有聊天记录吗？"))return;
+};
+
+document.getElementById("clear").onclick=function(){
+if(confirm("确定清空记录？")){
 messages=[];
 localStorage.removeItem(key);
 render();
-});
+}
+};
+
 render();
 </script>
 </body>
 </html>
-EOF
-
-ls -l index.html
-[PersonalAI]$ cd ~/Documents/PersonalAI
-[PersonalAI]$ ls -l index.html
--rw-r--r--@ 1 mobile  mobile  0 Nov 15 11:47 index.html
-[PersonalAI]$ echo '<h1>PersonalAI</h1>' > index.html
-[PersonalAI]$ ls -l index.html
-                              cat index.html
--rw-r--r--@ 1 mobile  mobile  20 Nov 15 11:50 index.html
-<h1>PersonalAI</h1>
-[PersonalAI]$ echo '<h1>PersonalAI</h1>' > index.html
-   ls -l index.html
--rw-r--r--@ 1 mobile  mobile  20 Nov 15 11:50 index.html
-[PersonalAI]$ echo '<!DOCTYPE html>' > index.html
-                                                 echo '<html lang="zh-CN">' >> index.html
-                                       echo '<head>' >> index.html
-                echo '<meta charset="UTF-8">' >> index.html
-         echo '<meta name="viewport" content="width=device-width,initial-scale=1">' >> index.html
-                                               echo '<meta name="theme-color" content="#111318">' >> index.html
-           echo '<title>PersonalAI</title>' >> index.html
-       echo '<style>body{margin:0;padding:24px;background:#111318;color:white;font-family:sans-serif}input{padding:12px;border-radius:10px}button{padding:12px;background:#6688ff;color:white;border:0;border-radius:10px}p{overflow-wrap:anywhere}</style>' >> index.html
-                echo '</head><body>' >> index.html
-                                                 echo '<h1>PersonalAI</h1><p>你好，欢迎回来。</p>' >> index.html
-            echo '<div id="out"></div>' >> index.html
-   echo '<input id="msg" placeholder="发送消息">' >> index.html
-             echo '<button id="send">发送</button>' >> index.html
-               echo '<button id="clear">清空记录</button>' >> index.html
-[PersonalAI]$ echo '<script>' >> index.html
-                                           echo 'const key="personalai_messages_v1";' >> index.html
-                                                 echo 'let messages=[];' >> index.html
-                                    echo 'try{messages=JSON.parse(localStorage.getItem(key)||"[]");if(!Array.isArray(messages))messages=[];}catch(e){messages=[];}' >> index.html
-                           echo 'const out=document.getElementById("out");' >> index.html
-                                       echo 'function render(){out.innerHTML="";messages.forEach(v=>{const p=document.createElement("p");p.textContent="你："+v;out.appendChild(p);});}' >> index.html
-                                                echo 'function send(){const input=document.getElementById("msg");const v=input.value.trim();if(!v)return;messages.push(v);try{localStorage.setItem(key,JSON.stringify(messages));}catch(e){alert("保存失败");}input.value="";render();}' >> index.html
-                                            echo 'document.getElementById("send").addEventListener("click",send);' >> index.html
-                            echo 'document.getElementById("msg").addEventListener("keydown",e=>{if(e.key==="Enter")send();});' >> index.html
-                                        echo 'document.getElementById("clear").addEventListener("click",()=>{if(!confirm("确定清空聊天记录吗？"))return;messages=[];localStorage.removeItem(key);render();});' >> index.html
-                    echo 'render();' >> index.html
-                                                 echo '</script></body></html>' >> index.html
-                                           ls -l index.html
--rw-r--r--@ 1 mobile  mobile  1604 Nov 15 11:52 index.html
-[PersonalAI]$ tail -n 8 index.html
-const out=document.getElementById("out");
-function render(){out.innerHTML="";messages.forEach(v=>{const p=document.createElement("p");p.textContent="你："+v;out.appendChild(p);});}
-function send(){const input=document.getElementById("msg");const v=input.value.trim();if(!v)return;messages.push(v);try{localStorage.setItem(key,JSON.stringify(messages));}catch(e){alert("保存失败");}input.value="";render();}
-document.getElementById("send").addEventListener("click",send);
-document.getElementById("msg").addEventListener("keydown",e=>{if(e.key==="Enter")send();});
-document.getElementById("clear").addEventListener("click",()=>{if(!confirm("确定清空聊天记录吗？"))return;messages=[];localStorage.removeItem(key);render();});
-render();
-</script></body></html>
-[PersonalAI]$ grep -n 'localStorage' index.html
-18:try{messages=JSON.parse(localStorage.getItem(key)||"[]");if(!Array.isArray(messages))messages=[];}catch(e){messages=[];}
-21:function send(){const input=document.getElementById("msg");const v=input.value.trim();if(!v)return;messages.push(v);try{localStorage.setItem(key,JSON.stringify(messages));}catch(e){alert("保存失败");}input.value="";render();}
-24:document.getElementById("clear").addEventListener("click",()=>{if(!confirm("确定清空聊天记录吗？"))return;messages=[];localStorage.removeItem(key);render();});
-[PersonalAI]$ open index.html
-[PersonalAI]$ cat index.html
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#111318">
-<title>PersonalAI</title>
-<style>body{margin:0;padding:24px;background:#111318;color:white;font-family:sans-serif}input{padding:12px;border-radius:10px}button{padding:12px;background:#6688ff;color:white;border:0;border-radius:10px}p{overflow-wrap:anywhere}</style>
-</head><body>
-<h1>PersonalAI</h1><p>你好，欢迎回来。</p>
-<div id="out"></div>
-<input id="msg" placeholder="发送消息">
-<button id="send">发送</button>
-<button id="clear">清空记录</button>
-<script>
-const key="personalai_messages_v1";
-let messages=[];
-try{messages=JSON.parse(localStorage.getItem(key)||"[]");if(!Array.isArray(messages))messages=[];}catch(e){messages=[];}
-const out=document.getElementById("out");
-function render(){out.innerHTML="";messages.forEach(v=>{const p=document.createElement("p");p.textContent="你："+v;out.appendChild(p);});}
-function send(){const input=document.getElementById("msg");const v=input.value.trim();if(!v)return;messages.push(v);try{localStorage.setItem(key,JSON.stringify(messages));}catch(e){alert("保存失败");}input.value="";render();}
-document.getElementById("send").addEventListener("click",send);
-document.getElementById("msg").addEventListener("keydown",e=>{if(e.key==="Enter")send();});
-document.getElementById("clear").addEventListener("click",()=>{if(!confirm("确定清空聊天记录吗？"))return;messages=[];localStorage.removeItem(key);render();});
-render();
-</script></body></html>
-[PersonalAI]$ cat index.htmlcat index.html
