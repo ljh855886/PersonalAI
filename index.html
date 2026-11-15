@@ -7,64 +7,105 @@
 <meta name="theme-color" content="#111318">
 <title>PersonalAI</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;padding:24px;background:#111318;color:white;font-family:sans-serif}
-input{padding:12px;border-radius:10px;background:#20242c;color:white;border:1px solid #444}
-button{padding:12px;background:#6688ff;color:white;border:0;border-radius:10px}
-p{overflow-wrap:anywhere}
+body{margin:0;padding:20px;background:#111318;color:white;font-family:sans-serif}
+input,textarea,select{box-sizing:border-box;width:100%;padding:12px;margin:6px 0;background:#20242c;color:white;border:1px solid #444;border-radius:10px}
+button{padding:11px 15px;margin:5px 3px;background:#6688ff;color:white;border:0;border-radius:10px}
+#out{margin-top:15px;overflow-wrap:anywhere}
+.msg{padding:10px;background:#20242c;border-radius:10px;margin:8px 0}
+small{color:#aaa}
 </style>
 </head>
 <body>
 <h1>PersonalAI</h1>
-<p>你好，欢迎回来。</p>
+<p>角色聊天系统</p>
+
+<h3>选择角色</h3>
+<select id="roles"></select>
+<button id="add">创建角色</button>
+<button id="edit">修改设定</button>
+<button id="del">删除角色</button>
+
+<h3 id="roleName"></h3>
+<small id="rolePrompt"></small>
+
 <div id="out"></div>
 <input id="msg" placeholder="发送消息">
-<button id="send" type="button">发送</button>
-<button id="clear" type="button">清空记录</button>
+<button id="send">发送</button>
+<button id="clear">清空当前聊天</button>
+
 <script>
-const key="personalai_messages_v1";
-let messages=[];
-const out=document.getElementById("out");
-const input=document.getElementById("msg");
+const KEY="personalai_roles_v1";
+let data;
+try{data=JSON.parse(localStorage.getItem(KEY));}catch(e){}
+if(!data||!Array.isArray(data.roles)||!data.roles.length){
+data={current:0,roles:[{name:"默认角色",prompt:"一个友善的聊天角色。",messages:[]}]};
+}
+const $=id=>document.getElementById(id);
+function save(){localStorage.setItem(KEY,JSON.stringify(data));}
+function current(){return data.roles[data.current];}
 
 function render(){
-out.innerHTML="";
-messages.forEach(v=>{
-let p=document.createElement("p");
-p.textContent="你："+v;
-out.appendChild(p);
+$("roles").innerHTML="";
+data.roles.forEach((r,i)=>{
+let o=document.createElement("option");
+o.value=i;o.textContent=r.name;
+$("roles").appendChild(o);
+});
+$("roles").value=data.current;
+$("roleName").textContent=current().name;
+$("rolePrompt").textContent="角色设定："+current().prompt;
+$("out").innerHTML="";
+current().messages.forEach(m=>{
+let p=document.createElement("div");
+p.className="msg";
+p.textContent="你："+m;
+$("out").appendChild(p);
 });
 }
 
-function send(){
-let v=input.value.trim();
-if(!v)return;
-messages.push(v);
-try{
-localStorage.setItem(key,JSON.stringify(messages));
-}catch(e){
-alert("保存失败："+e.message);
-}
-input.value="";
-render();
-}
-
-try{
-messages=JSON.parse(localStorage.getItem(key)||"[]");
-if(!Array.isArray(messages))messages=[];
-}catch(e){messages=[];}
-
-document.getElementById("send").onclick=send;
-input.onkeydown=function(e){
-if(e.key==="Enter")send();
+$("roles").onchange=function(){
+data.current=Number(this.value);save();render();
 };
 
-document.getElementById("clear").onclick=function(){
-if(confirm("确定清空记录？")){
-messages=[];
-localStorage.removeItem(key);
-render();
-}
+$("add").onclick=function(){
+let name=prompt("请输入角色名称");
+if(!name||!name.trim())return;
+let promptText=prompt("请输入角色设定")||"一个友善的聊天角色。";
+data.roles.push({name:name.trim(),prompt:promptText,messages:[]});
+data.current=data.roles.length-1;save();render();
+};
+
+$("edit").onclick=function(){
+let r=current();
+let name=prompt("修改角色名称",r.name);
+if(!name||!name.trim())return;
+let p=prompt("修改角色设定",r.prompt);
+r.name=name.trim();if(p!==null)r.prompt=p;
+save();render();
+};
+
+$("del").onclick=function(){
+if(data.roles.length<=1){alert("至少保留一个角色");return;}
+if(!confirm("确定删除这个角色及其聊天记录？"))return;
+data.roles.splice(data.current,1);
+data.current=0;save();render();
+};
+
+$("send").onclick=function(){
+let v=$("msg").value.trim();
+if(!v)return;
+current().messages.push(v);
+$("msg").value="";
+save();render();
+};
+
+$("msg").onkeydown=function(e){
+if(e.key==="Enter")$("send").click();
+};
+
+$("clear").onclick=function(){
+if(!confirm("清空当前角色的聊天记录？"))return;
+current().messages=[];save();render();
 };
 
 render();
