@@ -7,17 +7,45 @@
 <meta name="theme-color" content="#111318">
 <title>PersonalAI</title>
 <style>
-body{margin:0;padding:20px;background:#111318;color:white;font-family:sans-serif}
-input,textarea,select{box-sizing:border-box;width:100%;padding:12px;margin:6px 0;background:#20242c;color:white;border:1px solid #444;border-radius:10px}
-button{padding:11px 15px;margin:5px 3px;background:#6688ff;color:white;border:0;border-radius:10px}
+*{box-sizing:border-box}
+body{
+ margin:0;padding:18px;background:#111318;color:white;
+ font-family:-apple-system,BlinkMacSystemFont,sans-serif
+}
+input,textarea,select{
+ width:100%;padding:12px;margin:6px 0;
+ background:#20242c;color:white;border:1px solid #444;
+ border-radius:10px;font-size:15px
+}
+button{
+ padding:11px 15px;margin:5px 3px;
+ background:#6688ff;color:white;border:0;
+ border-radius:10px;font-size:14px
+}
+button:disabled{opacity:.45}
 #out{margin-top:15px;overflow-wrap:anywhere}
-.msg{padding:10px;background:#20242c;border-radius:10px;margin:8px 0}
-small{color:#aaa}
+.msg{
+ padding:11px;background:#20242c;
+ border-radius:10px;margin:8px 0;
+ white-space:pre-wrap;line-height:1.5
+}
+.msg.ai{background:#293044}
+small{color:#aaa;line-height:1.6}
+#status{
+ padding:12px;margin:10px 0;
+ background:#20242c;border-radius:10px;
+ color:#b9c8ff;overflow-wrap:anywhere
+}
 </style>
 </head>
+
 <body>
 <h1>PersonalAI</h1>
-<p>角色聊天系统</p>
+<p>多角色离线 AI 聊天系统</p>
+
+<h3>AI 模型</h3>
+<button id="load">加载离线模型</button>
+<div id="status">模型尚未加载</div>
 
 <h3>选择角色</h3>
 <select id="roles"></select>
@@ -29,83 +57,310 @@ small{color:#aaa}
 <small id="rolePrompt"></small>
 
 <div id="out"></div>
+
 <input id="msg" placeholder="发送消息">
 <button id="send">发送</button>
 <button id="clear">清空当前聊天</button>
 
 <script>
 const KEY="personalai_roles_v1";
+
+const MODEL="Llama-3.2-1B-Instruct-q4f16_1-MLC";
+
 let data;
-try{data=JSON.parse(localStorage.getItem(KEY));}catch(e){}
-if(!data||!Array.isArray(data.roles)||!data.roles.length){
-data={current:0,roles:[{name:"默认角色",prompt:"一个友善的聊天角色。",messages:[]}]};
-}
+let engine=null;
+let loading=false;
+let busy=false;
+
 const $=id=>document.getElementById(id);
-function save(){localStorage.setItem(KEY,JSON.stringify(data));}
-function current(){return data.roles[data.current];}
+
+try{
+ data=JSON.parse(localStorage.getItem(KEY));
+}catch(e){}
+
+if(!data||!Array.isArray(data.roles)||!data.roles.length){
+ data={
+  current:0,
+  roles:[{
+   name:"默认角色",
+   prompt:"一个友善、可爱的聊天角色。",
+   messages:[]
+  }]
+ };
+}
+
+data.roles.forEach(r=>{
+ if(!Array.isArray(r.messages))r.messages=[];
+ r.messages=r.messages.map(m=>{
+  if(typeof m==="string"){
+   return {role:"user",content:m};
+  }
+  return m;
+ }).filter(m=>
+  m&&
+  (m.role==="user"||m.role==="assistant")&&
+  typeof m.content==="string"
+ );
+});
+
+data.current=Math.max(
+ 0,Math.min(data.current||0,data.roles.length-1)
+);
+
+function save(){
+ try{
+  localStorage.setItem(KEY,JSON.stringify(data));
+ }catch(e){
+  $("status").textContent="保存失败，可能是浏览器存储空间不足。";
+ }
+}
+
+function current(){
+ return data.roles[data.current];
+}
+
+function setStatus(text){
+ $("status").textContent=text;
+}
+
+function setBusy(value){
+ busy=value;
+ $("send").disabled=value;
+ $("load").disabled=value||loading;
+ $("roles").disabled=value;
+ $("add").disabled=value;
+ $("edit").disabled=value;
+ $("del").disabled=value;
+}
 
 function render(){
-$("roles").innerHTML="";
-data.roles.forEach((r,i)=>{
-let o=document.createElement("option");
-o.value=i;o.textContent=r.name;
-$("roles").appendChild(o);
-});
-$("roles").value=data.current;
-$("roleName").textContent=current().name;
-$("rolePrompt").textContent="角色设定："+current().prompt;
-$("out").innerHTML="";
-current().messages.forEach(m=>{
-let p=document.createElement("div");
-p.className="msg";
-p.textContent="你："+m;
-$("out").appendChild(p);
-});
+ $("roles").innerHTML="";
+
+ data.roles.forEach((r,i)=>{
+  const o=document.createElement("option");
+  o.value=i;
+  o.textContent=r.name;
+  $("roles").appendChild(o);
+ });
+
+ $("roles").value=data.current;
+ $("roleName").textContent=current().name;
+ $("rolePrompt").textContent=
+  "角色设定："+current().prompt;
+
+ $("out").innerHTML="";
+
+ current().messages.forEach(m=>{
+  const p=document.createElement("div");
+  p.className="msg "+(m.role==="assistant"?"ai":"user");
+
+  const who=m.role==="assistant"?current().name:"你";
+  p.textContent=who+"："+m.content;
+
+  $("out").appendChild(p);
+ });
+
+ $("out").scrollTop=$("out").scrollHeight;
 }
 
 $("roles").onchange=function(){
-data.current=Number(this.value);save();render();
+ data.current=Number(this.value);
+ save();
+ render();
 };
 
 $("add").onclick=function(){
-let name=prompt("请输入角色名称");
-if(!name||!name.trim())return;
-let promptText=prompt("请输入角色设定")||"一个友善的聊天角色。";
-data.roles.push({name:name.trim(),prompt:promptText,messages:[]});
-data.current=data.roles.length-1;save();render();
+ const name=prompt("请输入角色名称");
+ if(!name||!name.trim())return;
+
+ const promptText=
+  prompt("请输入角色设定")||
+  "一个友善的聊天角色。";
+
+ data.roles.push({
+  name:name.trim(),
+  prompt:promptText,
+  messages:[]
+ });
+
+ data.current=data.roles.length-1;
+ save();
+ render();
 };
 
 $("edit").onclick=function(){
-let r=current();
-let name=prompt("修改角色名称",r.name);
-if(!name||!name.trim())return;
-let p=prompt("修改角色设定",r.prompt);
-r.name=name.trim();if(p!==null)r.prompt=p;
-save();render();
+ const r=current();
+
+ const name=prompt("修改角色名称",r.name);
+ if(!name||!name.trim())return;
+
+ const p=prompt("修改角色设定",r.prompt);
+
+ r.name=name.trim();
+ if(p!==null)r.prompt=p;
+
+ save();
+ render();
 };
 
 $("del").onclick=function(){
-if(data.roles.length<=1){alert("至少保留一个角色");return;}
-if(!confirm("确定删除这个角色及其聊天记录？"))return;
-data.roles.splice(data.current,1);
-data.current=0;save();render();
+ if(data.roles.length<=1){
+  alert("至少保留一个角色");
+  return;
+ }
+
+ if(!confirm("确定删除这个角色及其聊天记录？"))return;
+
+ data.roles.splice(data.current,1);
+ data.current=0;
+
+ save();
+ render();
 };
 
-$("send").onclick=function(){
-let v=$("msg").value.trim();
-if(!v)return;
-current().messages.push(v);
-$("msg").value="";
-save();render();
-};
+// 加载本地 AI 引擎
+async function loadModel(){
+ if(engine)return engine;
+ if(loading)return null;
+
+ if(!navigator.gpu){
+  setStatus("当前浏览器没有可用的 WebGPU。");
+  return null;
+ }
+
+ loading=true;
+ $("load").disabled=true;
+
+ try{
+  setStatus("正在连接 AI 引擎……");
+
+  const webllm=await import(
+   "https://esm.run/@mlc-ai/web-llm"
+  );
+
+  setStatus("正在检查模型并准备下载……");
+
+  engine=await webllm.CreateMLCEngine(
+   MODEL,
+   {
+    initProgressCallback:(progress)=>{
+     setStatus(
+      progress.text||"正在加载模型……"
+     );
+    }
+   }
+  );
+
+  setStatus("模型加载完成，可以开始聊天。");
+  return engine;
+
+ }catch(e){
+  engine=null;
+  setStatus(
+   "模型加载失败："+(e.message||String(e))
+  );
+  return null;
+
+ }finally{
+  loading=false;
+  $("load").disabled=false;
+ }
+}
+
+$("load").onclick=loadModel;
+
+// 发送消息并生成 AI 回复
+async function sendMessage(){
+ if(busy)return;
+
+ const v=$("msg").value.trim();
+ if(!v)return;
+
+ if(!engine){
+  setStatus("请先点击「加载离线模型」。");
+  return;
+ }
+
+ const role=current();
+
+ role.messages.push({
+  role:"user",
+  content:v
+ });
+
+ $("msg").value="";
+ save();
+ render();
+
+ setBusy(true);
+ setStatus("AI 正在思考……");
+
+ try{
+  const history=role.messages.slice(-12);
+
+  const messages=[
+   {
+    role:"system",
+    content:
+     "你正在扮演以下角色，请严格遵守角色设定。" +
+     "保持角色性格，不要自称AI。" +
+     "使用简体中文自然交流。" +
+     "角色设定："+role.prompt
+   },
+   ...history.map(m=>({
+    role:m.role,
+    content:m.content
+   }))
+  ];
+
+  const result=await engine.chat.completions.create({
+   messages:messages,
+   temperature:0.8,
+   top_p:0.9,
+   max_tokens:160
+  });
+
+  const answer=
+   result.choices?.[0]?.message?.content;
+
+  if(!answer){
+   throw new Error("模型没有返回有效内容");
+  }
+
+  role.messages.push({
+   role:"assistant",
+   content:answer
+  });
+
+  save();
+  render();
+  setStatus("回复完成。");
+
+ }catch(e){
+  setStatus(
+   "生成失败："+(e.message||String(e))
+  );
+
+ }finally{
+  setBusy(false);
+ }
+}
+
+$("send").onclick=sendMessage;
 
 $("msg").onkeydown=function(e){
-if(e.key==="Enter")$("send").click();
+ if(e.key==="Enter"){
+  e.preventDefault();
+  sendMessage();
+ }
 };
 
 $("clear").onclick=function(){
-if(!confirm("清空当前角色的聊天记录？"))return;
-current().messages=[];save();render();
+ if(!confirm("清空当前角色的聊天记录？"))return;
+
+ current().messages=[];
+ save();
+ render();
 };
 
 render();
